@@ -1,5 +1,7 @@
 # Defining provider
 
+
+# Defining AWS providers
 provider "aws" {
     region = "${var.aws_region}"
 }
@@ -8,10 +10,13 @@ provider "aws" {
 data "aws_caller_identity" "current" {}
 
 
+# Read Existing SNS topic from user input
 data "aws_sns_topic" "SNSTopic" {
   name = "${var.SNSTopic}"
 }
 
+
+# Creates Cloudwatch event rule for SQS Rule
 resource "aws_cloudwatch_event_rule" "TASQRule" {
     description = "Limit Monitor Solution - Rule for TA SQS events" 
     event_pattern = <<PATTERN
@@ -42,12 +47,14 @@ resource "aws_cloudwatch_event_rule" "TASQRule" {
         PATTERN
 }
 
+# Event target for TASQRule 
 resource "aws_cloudwatch_event_target" "sns" {
     rule  = "${aws_cloudwatch_event_rule.TASQRule.name}"
     target_id = "LimitMonitorSQSTarget"
     arn = "${aws_sqs_queue.EventQueue.arn}"
 }
 
+# Creates Cloudwatch event rule for SNS Rule
 resource "aws_cloudwatch_event_rule" "TASNSRule" {
     description = "Limit Monitor Solution - Rule for TA SNS events"
     event_pattern = <<PATTERN
@@ -74,6 +81,7 @@ resource "aws_cloudwatch_event_rule" "TASNSRule" {
 }
 
 
+# Event target for TASNSRule
 resource "aws_cloudwatch_event_target" "sqs" {
     rule  = "${aws_cloudwatch_event_rule.TASNSRule.name}"
     target_id = "LimitMonitorSQSTarget"
@@ -96,6 +104,8 @@ resource "aws_cloudwatch_event_target" "sqs" {
 # [EventQueue, DeadLetterQueue, EventQueuePolicy, QueuePollSchedule,
 # SummarizerInvokePermission, LimitSummarizer, LimitSummarizerRole, SummaryDDB]
 #
+
+# Event Queue
 resource "aws_sqs_queue" "EventQueue" {
     redrive_policy            = "{\"deadLetterTargetArn\":\"${aws_sqs_queue.DeadLetterQueue.arn}\",\"maxReceiveCount\":3}"
     visibility_timeout_seconds = 60
@@ -170,8 +180,7 @@ resource "aws_lambda_function" "LimitSummarizer" {
   function_name = "LimitSummarizer"
   handler = "index.handler"
   role  = "${aws_iam_role.LimitSummarizerRole.arn}"
-  s3_bucket = "${var.s3_bucket}-${var.aws_region}"
-  s3_key  = "${var.s3_key_prefix}/limtr-report-service.zip"
+  filename = "${var.package_limitsummerizer}"
   runtime = "nodejs8.10"
   timeout = 300
 }
@@ -300,8 +309,7 @@ resource "aws_lambda_function" "TARefresher" {
   }
   handler = "index.handler"
   role  = "${aws_iam_role.TARefresherRole.arn}"
-  s3_bucket = "${var.s3_bucket}-${var.aws_region}"
-  s3_key  = "${var.s3_key_prefix}/limtr-refresh-service.zip"
+  filename  = "${var.package_tarefresher}"
   runtime = "nodejs8.10"
   timeout = "300"
   
@@ -386,8 +394,7 @@ resource "aws_lambda_function" "LimtrHelperFunction" {
 
     }
   }
-  s3_bucket = "${var.s3_bucket}-${var.aws_region}"
-  s3_key    = "${var.s3_key_prefix}/limtr-helper-service.zip"
+  filename  = "${var.package_limithelperfunction}"
   runtime = "nodejs8.10"
   timeout = "300"
   role = "${aws_iam_role.LimitSummarizerRole.arn}"
@@ -483,8 +490,7 @@ resource "aws_lambda_function" "LimitMonitorFunction" {
 
     }
   }
-  s3_bucket = "${var.s3_bucket}-${var.aws_region}"
-  s3_key    = "${var.s3_key_prefix}/service-quotas-checks-service.zip"
+  filename  = "${var.package_limitmonitorfuncion}"
   runtime = "nodejs8.10"
   timeout = "300"
   role = "${aws_iam_role.LimitMonitorRole.arn}"

@@ -79,3 +79,22 @@ output "UUID" {
 }
 
 
+variable "package_limitsummarizer" {
+    description =   "Path to LimitSummarizer in filesystem"
+  
+}
+
+
+variable "package_tarefresher" {
+    description =   "Path to TARefresher in filesystem"
+  
+}
+
+variable "package_limithelperfunction" {
+    description =   "Path to LimitHelperfunction package in filesystem"
+}
+
+
+variable "package_limitmonitorfuncion" {
+    description =   "Path to LimitMonitorFunction package in filesystem"
+}
